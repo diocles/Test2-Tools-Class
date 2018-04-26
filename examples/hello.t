@@ -2,7 +2,6 @@ package Hello;
 
 use Test2::Tools::xUnit;
 use Test2::V0;
-use Moo;
 
 my $package_variable;
 
