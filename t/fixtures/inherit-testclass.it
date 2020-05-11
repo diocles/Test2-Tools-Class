@@ -1,0 +1,98 @@
+#! perl
+
+package My::Inherit::Parent;
+use Test2::Tools::xUnit;
+use Test2::V0;
+
+# keep track of event details so that we can ensure that all of the
+# tests and todos ran.  Because the results are unordered, the tests
+# check if an event is in a set.  This list is used to ensure that
+# events aren't duplicated (e.g., that I haven't messed up).
+
+our @EVENTS;
+
+sub emit {
+
+    my $ctx = context;
+    my $self = shift;
+    my $details = join( '::', @_  );
+    push @EVENTS, $details;
+
+    $ctx->send_ev2_and_release( assert => { pass => 1, details => $details  } );
+    return;
+};
+
+sub BeforeAll_Parent : BeforeAll  {
+    shift->emit( __PACKAGE__, 'BeforeAll' );
+}
+
+sub AfterAll_Parent : AfterAll {
+    shift->emit( __PACKAGE__, 'AfterAll' );
+}
+
+sub BeforeEach_Parent : BeforeEach  {
+    shift->emit( __PACKAGE__, 'BeforeEach' );
+}
+
+sub AfterEach_Parent : AfterEach {
+    shift->emit( __PACKAGE__, 'AfterEach' );
+}
+
+sub Test_Parent : Test {
+    shift->emit( __PACKAGE__, 'Test' );
+}
+
+sub Skip_Parent : Skip {
+    shift->emit( __PACKAGE__, 'Skip' );
+}
+
+sub Todo_Parent : Todo {
+    shift->emit( __PACKAGE__, 'Todo' );
+}
+
+package My::Inherit::Child;
+
+use Test2::V0;
+
+use parent -norequire => 'My::Inherit::Parent';
+
+sub BeforeAll_Child : BeforeAll  {
+    shift->emit( __PACKAGE__, 'BeforeAll' );
+}
+
+sub AfterAll_Child : AfterAll {
+    shift->emit( __PACKAGE__, 'AfterAll' );
+}
+
+sub BeforeEach_Child : BeforeEach  {
+    shift->emit( __PACKAGE__, 'BeforeEach' );
+}
+
+sub AfterEach_Child : AfterEach {
+    shift->emit( __PACKAGE__, 'AfterEach' );
+}
+
+sub Test_Child : Test {
+    shift->emit( __PACKAGE__, 'Test' );
+}
+
+sub Skip_Child : Skip {
+    shift->emit( __PACKAGE__, 'Skip' );
+}
+
+sub Todo_Child : Todo {
+    shift->emit( __PACKAGE__, 'Todo' );
+}
+
+
+package My::Inherit::SubChild;
+
+use Test2::V0;
+
+use parent -norequire => 'My::Inherit::Child';
+
+done_testing;
+
+1;
+
+

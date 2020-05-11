@@ -55,8 +55,25 @@ sub import {
     #
     # It closes over $root so that it can add the actions, and @caller so that
     # it knows which package it's in.
-    my $modify_code_attributes = sub {
+    my $modify_code_attributes;
+    $modify_code_attributes = sub {
         my ( $pkg, $code, @attrs ) = @_;
+
+        # In order to pass the correct frame to
+        # Test2::Workflow::Task::Action below, search for the
+        # package that called the attribute handler. This should
+        # be one level above attributes in the caller stack.
+        # make sure we don't run off of the stack
+
+        my $level = 0;
+        my @test_caller;
+        for  ( ; @test_caller = caller( $level ) ; ++$level ) {
+            last if $test_caller[0] eq 'attributes';
+        }
+
+        # if we've found the proper frame, use that, else default
+        # to this package.
+        my @caller = @test_caller ? caller(++$level) : @caller;
 
         my $name = B::svref_2object($code)->GV->NAME;
 
@@ -110,7 +127,7 @@ sub import {
         if ($method) {
             my $task = Test2::Workflow::Task::Action->new(
                 code => $class_method
-                ? sub { $caller[0]->$code }
+                ? sub { $pkg->$code }
                 : sub { shift->{xUnit}->$code },
                 frame => \@caller,
                 name  => $name,
@@ -132,7 +149,12 @@ sub import {
             my @parents = @{ $pkg . '::ISA' };
             @parents = 'UNIVERSAL' unless @parents;
             for my $parent (@parents) {
-                if ( my $subref = $parent->can('MODIFY_CODE_ATTRIBUTES') ) {
+
+                # if this package is inherited from, need to ensure
+                # that we don't just jump right back into this
+                # very routine, as that'll generate an infinite loop.
+                my $subref = $parent->can('MODIFY_CODE_ATTRIBUTES');
+                if ( $subref && $subref != $modify_code_attributes ) {
                     goto $subref;
                 }
             }
